@@ -1,1 +1,139 @@
-Test 2
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Парсер заказа</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        textarea, input {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        textarea {
+            height: 200px;
+        }
+        .output {
+            white-space: pre-wrap;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Парсер заказа</h2>
+
+<textarea id="orderInput" placeholder="Вставьте текст заказа сюда"></textarea>
+
+<label for="deliveryTime">Срок изготовления (дней):</label>
+<input type="number" id="deliveryTime" value="8" />
+
+<button onclick="parseOrder()">Создать письмо</button>
+
+<h3>Письмо клиенту</h3>
+<div id="formattedOutput" class="output"></div>
+
+<button id="whatsappButton" style="display: none;" onclick="sendWhatsApp()">Написать в WhatsApp</button>
+
+<script>
+    let formattedMessage = '';
+
+    function parseOrder() {
+        const orderText = document.getElementById('orderInput').value;
+        const deliveryTime = document.getElementById('deliveryTime').value || 8;
+
+        // Регулярные выражения для извлечения информации
+        const orderIdMatch = orderText.match(/Заказ №(\d+)/);
+        const productMatches = [...orderText.matchAll(/\d+\.\s(.+):\s([\d\s]+)\s\(1\sx\s[\d\s]+\)(.*?)(?=\n|$)/g)];
+        const totalMatch = orderText.match(/Сумма платежа:\s([\d\s]+)\sRUB/);
+        const nameMatch = orderText.match(/name:\s(.+)/);
+        const emailMatch = orderText.match(/Email:\s(.+)/);
+        const addressMatch = orderText.match(/adress:\s(.+)/);
+        const phoneMatch = orderText.match(/phone:\s(\+[\d]+)/);
+        const deliveryTypeMatch = orderText.match(/deliverytype:\s(.+)/);
+        const deliveryMatch = orderText.match(/delivery:\s(.+)/);
+        const payTypeMatch = orderText.match(/paytype:\s(.+)/);
+
+        // Проверка наличия данных
+        if (!orderIdMatch || productMatches.length === 0 || !totalMatch || !nameMatch || !emailMatch || !phoneMatch || !deliveryTypeMatch || !deliveryMatch || !payTypeMatch) {
+            document.getElementById('formattedOutput').innerText = 'Не удалось распознать все данные. Пожалуйста, проверьте правильность вставленного текста.';
+            return;
+        }
+
+        // Форматирование письма
+        const orderId = orderIdMatch[1];
+        const total = totalMatch[1].trim();
+        const customerName = nameMatch[1];
+        const customerEmail = emailMatch[1];
+        const customerPhone = phoneMatch[1];
+        const deliveryType = deliveryTypeMatch[1].trim();
+        const delivery = deliveryMatch[1].trim();
+
+        // Формируем список товаров
+        let productList = '';
+        productMatches.forEach((match, index) => {
+            const additionalInfo = match[3] ? match[3].trim() : '';
+            productList += `${index + 1}. ${match[1]} ${additionalInfo}\n`;
+        });
+
+        // Выбор строки для доставки
+        let deliveryText = '';
+        let insuranceText = '';
+        if (delivery === 'Самовывоз (г.Калуга)') {
+            deliveryText = 'вы можете забрать товар самовывозом с нашего производства по адресу Калуга, Грабцевское шоссе, 101А в часы работы нашего склада.';
+        } else if (deliveryType === 'До терминала') {
+            deliveryText = 'до терминала в вашем городе и присылаем вам накладную для отслеживания.';
+            insuranceText = 'Весь груз при этом страхуем на полную стоимость заказа.';
+        } else {
+            deliveryText = `по вашим данным по адресу ${addressMatch ? addressMatch[1] : 'не указан'}`;
+            insuranceText = 'Весь груз при этом страхуем на полную стоимость заказа.';
+        }
+
+        // Выбор текста для оплаты
+        let paymentText = '';
+        if (payTypeMatch[1].trim() === 'Выставление счета юр.лицу') {
+            paymentText = 'Если вы готовы сделать заказ, мне нужны ваши реквизиты для выставления счёта.';
+        } else {
+            paymentText = `Если вы готовы сделать заказ, я передам ваши данные бухгалтеру и она сделает ссылку для оплаты. Оплата у нас официальная, вы получите электронный чек на почту ${customerEmail}.`;
+        }
+
+        formattedMessage = `Здравствуйте, ${customerName}! Меня зовут Никита, я менеджер компании Space Loft.
+
+Пишу, чтобы подтвердить ваш заказ №${orderId}.
+
+У вас в заказе:
+
+${productList}
+
+Сумма заказа: ${total} руб.
+
+На данный момент срок изготовления составляет ${deliveryTime} рабочих дней. ${paymentText} После оплаты мы берем стол в работу и по готовности ${deliveryText} ${insuranceText}`;
+
+        document.getElementById('formattedOutput').innerText = formattedMessage;
+
+        // Показать кнопку для WhatsApp
+        document.getElementById('whatsappButton').style.display = 'inline-block';
+        document.getElementById('whatsappButton').setAttribute('data-phone', customerPhone);
+    }
+
+    function sendWhatsApp() {
+        const phone = document.getElementById('whatsappButton').getAttribute('data-phone');
+        const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(formattedMessage)}`;
+        window.open(whatsappUrl, '_blank');
+    }
+</script>
+
+</body>
+</html>
