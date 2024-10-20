@@ -56,7 +56,7 @@
 
         // Регулярные выражения для извлечения информации
         const orderIdMatch = orderText.match(/Заказ №(\d+)/);
-        const productMatches = [...orderText.matchAll(/\d+\.\s(.+):\s([\d\s]+)\s\(1\sx\s[\d\s]+\)(.*?)(?=\n|$)/g)];
+        const productMatches = [...orderText.matchAll(/\d+\.\s(.+):\s([\d\s]+)\s\(.*?\)(.*?)(?=\n|$)/g)];
         const totalMatch = orderText.match(/Сумма платежа:\s([\d\s]+)\sRUB/);
         const nameMatch = orderText.match(/name:\s(.+)/);
         const emailMatch = orderText.match(/Email:\s(.+)/);
@@ -90,15 +90,14 @@
 
         // Выбор строки для доставки
         let deliveryText = '';
-        let insuranceText = '';
+        let insuranceText = 'Весь груз при этом страхуем на полную стоимость заказа.';
+
         if (delivery === 'Самовывоз (г.Калуга)') {
             deliveryText = 'вы можете забрать товар самовывозом с нашего производства по адресу Калуга, Грабцевское шоссе, 101А в часы работы нашего склада.';
         } else if (deliveryType === 'До терминала') {
             deliveryText = 'до терминала в вашем городе и присылаем вам накладную для отслеживания.';
-            insuranceText = 'Весь груз при этом страхуем на полную стоимость заказа.';
         } else {
             deliveryText = `по вашим данным по адресу ${addressMatch ? addressMatch[1] : 'не указан'}`;
-            insuranceText = 'Весь груз при этом страхуем на полную стоимость заказа.';
         }
 
         // Выбор текста для оплаты
@@ -119,7 +118,7 @@ ${productList}
 
 Сумма заказа: ${total} руб.
 
-На данный момент срок изготовления составляет ${deliveryTime} рабочих дней. ${paymentText} После оплаты мы берем стол в работу и по готовности отправим ${deliveryText} ${insuranceText}`;
+На данный момент срок изготовления составляет ${deliveryTime} рабочих дней. ${paymentText} После оплаты мы берем стол в работу и по готовности отправляем ${deliveryText} ${insuranceText}`;
 
         document.getElementById('formattedOutput').innerText = formattedMessage;
 
